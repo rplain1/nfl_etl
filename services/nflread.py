@@ -1,48 +1,9 @@
-import duckdb
-
-duck_conn = duckdb.connect('data/luna.duckdb')
-duck_conn.sql(
-    """SELECT count(*) AS total_size
-FROM read_parquet(
-  list_transform(
-    generate_series(2012, 2023),
-    n -> 'https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_' || format('{:04d}', n) || '.parquet'
-  )
-); """
-)
-
-
-duck_conn.sql(
-    """SELECT  * from
-  list_transform(
-    generate_series(2012, 2023),
-    n -> 'https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_' || format('{:04d}', n) || '.parquet'
-  ); """
-)
-
-
 import nfl_data_py as nfl
+import ibis
 from ibis import _
 
-import sqlite3
-import ibis
 
 con = ibis.duckdb.connect('data/luna.duckdb')
-con.list_tables()
-t = con.sql("select * from base.snap_counts")
-t1 = t.group_by(t.season).aggregate(games = t.game_id.nunique())
-
-t1.mutate(ibis.case().when(t.season == 2023, 1))
-
-df_snaps = nfl.import_snap_counts(range(2012, 2024))
-df_snaps_memtable = ibis.memtable(df_snaps)
-t2 = df_snaps_memtable.group_by(df_snaps_memtable.season).aggregate(
-    games=df_snaps_memtable.game_id.nunique()
-)
-
-t1.join(t2,  'season').filter(_.games != _.games_right).to_polars().shape[0]
-t2
-
 
 def update_duckdb(con, source_df, table_name, schema='BASE', db = 'data/duckdb'):
 
@@ -56,7 +17,7 @@ def update_duckdb(con, source_df, table_name, schema='BASE', db = 'data/duckdb')
     con.con.execute(sql_command)
     print("Table updated successfully")
 
-update_duckdb(con, df_snaps, "SNAP_COUNTS")
+update_duckdb(con, nfl.import_snap_counts(range(2012, 2024)), "SNAP_COUNTS")
 update_duckdb(con, nfl.import_ftn_data(range(2022, 2024), downcast=False), "FTN_DATA")
 update_duckdb(con, nfl.import_ids(), "IDS")
 update_duckdb(con, nfl.import_draft_picks(), "DRAFT_PICKS")
@@ -74,4 +35,5 @@ update_duckdb(con, nfl.import_seasonal_pfr("rush"), "PFR_SEAS_RUSH")
 update_duckdb(con, nfl.import_seasonal_pfr("rec"), "PFR_SEAS_REC")
 update_duckdb(con, nfl.import_players(), "PLAYERS")
 update_duckdb(con, nfl.import_team_desc(), "TEAM_DESC")
+update_duckdb(con, nfl.import_weekly_data(range(1999, 2024), downcast=False), "PLAYER_STATS_WK")
 con.disconnect()

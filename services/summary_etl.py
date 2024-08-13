@@ -1,26 +1,77 @@
-import polars as pl
-import duckdb
-import logging
+import ibis
+from ibis import _
 
-con = duckdb.connect('data/luna.duckdb')
-con.execute("CREATE SCHEMA IF NOT EXISTS SUMMARY")
-con.execute(
-    f"""
-    CREATE OR REPLACE TABLE SUMMARY.TEAM_GAME_EPA AS
-    SELECT
-    game_id
-    , posteam
-    , season
-    , cast(game_date as date) as game_date
-    , play_type
-    , count(*) AS total_plays
-    , sum(yards_gained) total_yards
-    , sum(epa) total_epa
-    , avg(epa) mean_epa
-    FROM  BASE.nflfastr_pbp
-    WHERE  play = 1
-    AND special = 0
-    GROUP BY all
-"""
-)
-con.close()
+def execute_team_game_epa(con):
+
+    t = con.sql("select * from base.nflfastr_pbp")
+    t2 = (
+        t.filter(t.play == 1, t.special == 0).group_by(
+            t.posteam,
+            t.season,
+            t.game_date.to_date("%Y-%m-%d").name("game_date"),
+            t.play_type
+        )
+        .aggregate(
+            total_plays = _.count(),
+            total_yards = _.yards_gained.sum(),
+            total_epa = _.epa.sum(),
+            mean_epa = _.epa.mean()
+        )
+    )
+
+    try:
+        con.create_view("TEAM_GAME_EPA", t2, database="Summary", overwrite=True)
+        print("View Created")
+    except Exception as e:
+        print(f"Failed to write duckdb")
+        raise
+
+
+def execute_qb_stats_season(con):
+
+    t = con.sql("select * from BASE.PLAYER_STATS_WK")
+    t2 = (
+        t.filter(t.attempts > 0)
+        .group_by(t.player_id, t.player_name, t.position_group, t.season, t.season_type)
+        .aggregate(
+            games=_.count(),
+            att_total=_.attempts.sum(),
+            att_mean=_.attempts.mean(),
+            comp_total=_.completions.sum(),
+            comp_mean=_.completions.mean(),
+            comp_perc=_.completions.sum() / _.attempts.sum(),
+            yds_total=_.passing_yards.sum(),
+            yds_mean=_.passing_yards.mean(),
+            pass_tds_total=_.passing_tds.sum(),
+            pass_tds_mean=_.passing_tds.mean(),
+            int_total=_.interceptions.sum(),
+            int_mean=_.interceptions.mean(),
+            sacks_total=_.sacks.sum(),
+            sacks_mean=_.sacks.mean(),
+            sack_yards=_.sack_yards.sum(),
+            sack_fumbles=_.sack_fumbles.sum(),
+            sack_fumbles_lost=_.sack_fumbles_lost.sum(),
+            air_yds_total=_.passing_air_yards.sum(),
+            air_yds_mean=_.passing_air_yards.mean(),
+            yac_total=_.passing_yards_after_catch.sum(),
+            yac_mean=_.passing_yards_after_catch.mean(),
+            passing_first_downs=_.passing_first_downs.sum(),
+            first_downs_mean=_.passing_first_downs.mean(),
+        )
+    )
+
+    try:
+        con.create_view("QB_STATS_SEASON", t2, database="Summary", overwrite=True)
+        print("View Created")
+    except Exception as e:
+        print(f"Failed to write duckdb")
+        raise
+
+
+
+
+if __name__ == '__main__':
+    con = ibis.duckdb.connect("data/luna.duckdb")
+    execute_team_game_epa(con)
+    execute_qb_stats_season(con)
+    con.disconnect()
