@@ -68,10 +68,24 @@ def execute_qb_stats_season(con):
         raise
 
 
+def execute_ffc_adp(con, file_path):
+
+    with open(file_path, "r") as file:
+        sql_script = file.read()
+
+    t = con.sql(sql_script)
+
+    try:
+        con.create_view("FFC_ADP_IDS", t, database="Summary", overwrite=True)
+        print("View Created")
+    except Exception as e:
+        print(f"Failed to write duckdb")
+        raise
 
 
 if __name__ == '__main__':
     con = ibis.duckdb.connect("data/luna.duckdb")
     execute_team_game_epa(con)
     execute_qb_stats_season(con)
+    execute_ffc_adp(con, 'sql/adp.sql')
     con.disconnect()
