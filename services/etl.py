@@ -110,7 +110,7 @@ class ETL:
         self.transform()
         self.load()
 
-def sqlite_to_duckb(db_path, table_name, duckdb_path = 'data/luna.duckdb'):
+def sqlite_to_duckb(db_path, table_name, duckdb_path = 'data/luna.duckdb', schema='BASE'):
 
     sqlite_connection_string = "sqlite://" + db_path
     query = f"SELECT * FROM {table_name.lower()}"
@@ -122,10 +122,10 @@ def sqlite_to_duckb(db_path, table_name, duckdb_path = 'data/luna.duckdb'):
 
     try:
         con = duckdb.connect(duckdb_path)
-        con.execute("CREATE SCHEMA IF NOT EXISTS BASE")
+        con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
         con.execute(
             f"""
-            CREATE OR REPLACE TABLE BASE.{table_name} AS
+            CREATE OR REPLACE TABLE {schema}.{table_name} AS
             SELECT * FROM df
         """
         )
@@ -141,14 +141,15 @@ def sqlite_to_duckb(db_path, table_name, duckdb_path = 'data/luna.duckdb'):
 if __name__ == '__main__':
     print('ok')
     # sqlite_to_duckb('data/pbp_db.sqlite', 'NFLFASTR_PBP', 'data/luna.duckdb')
-    table = 'SNAP_COUNTS'
-    config_file = {
-        "DATABASE": {
-            "SQLite": "data/base.sqlite",
-            "DuckDB": "data/luna.duckdb",
-        },
-        "SCHEMA": "BASE",
-        "TABLE": 'SNAP_COUNTS'
-    }
-    nflfastrETL = ETL(config_file=config_file)
-    nflfastrETL.run()
+    sqlite_to_duckb('data/cfb_pbp_db.sqlite', 'CFBFASTR_PBP','data/luna.duckdb', schema='CFB')
+    # table = 'SNAP_COUNTS'
+    # config_file = {
+    #     "DATABASE": {
+    #         "SQLite": "data/base.sqlite",
+    #         "DuckDB": "data/luna.duckdb",
+    #     },
+    #     "SCHEMA": "BASE",
+    #     "TABLE": 'SNAP_COUNTS'
+    # }
+    # nflfastrETL = ETL(config_file=config_file)
+    # nflfastrETL.run()
