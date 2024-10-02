@@ -140,8 +140,8 @@ def sqlite_to_duckb(db_path, table_name, duckdb_path = 'data/luna.duckdb', schem
 
 if __name__ == '__main__':
     print('ok')
-    # sqlite_to_duckb('data/pbp_db.sqlite', 'NFLFASTR_PBP', 'data/luna.duckdb')
-    sqlite_to_duckb('data/cfb_pbp_db.sqlite', 'CFBFASTR_PBP','data/luna.duckdb', schema='CFB')
+    sqlite_to_duckb('data/pbp_db.sqlite', 'NFLFASTR_PBP', 'data/luna.duckdb')
+    #sqlite_to_duckb('data/cfb_pbp_db.sqlite', 'CFBFASTR_PBP','data/luna.duckdb', schema='CFB')
     # table = 'SNAP_COUNTS'
     # config_file = {
     #     "DATABASE": {

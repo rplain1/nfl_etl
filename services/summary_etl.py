@@ -143,8 +143,8 @@ if __name__ == '__main__':
     execute_ffc_adp(con)
     con.disconnect()
 
-    con = ibis.duckdb.connect(f"md:belle?motherduck_token={os.getenv('motherduck_token')}")
-    execute_team_game_epa(con)
-    execute_qb_stats_season(con)
-    execute_ffc_adp(con)
-    con.disconnect()
+    # con = ibis.duckdb.connect(f"md:belle?motherduck_token={os.getenv('motherduck_token')}")
+    # execute_team_game_epa(con)
+    # execute_qb_stats_season(con)
+    # execute_ffc_adp(con)
+    # con.disconnect()
